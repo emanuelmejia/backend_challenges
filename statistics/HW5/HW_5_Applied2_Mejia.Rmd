@@ -1,0 +1,175 @@
+---
+title: "Applied Practice"
+author: "Emanuel Mejía"
+date: "Week 5"
+output: pdf_document
+---
+
+# 2.  Comparing Estimators
+
+Say that ${X_1, ..., X_n}$ is an i.i.d. sample from an exponential distribution, with common density, 
+$$f_X(x) = \lambda e^{-\lambda x}$$
+$$E[X] = \int x \cdot f_X(x)dx = \frac {1} {\lambda}$$
+$$ V[X] = \frac {1} {\lambda^2}$$
+You are considering the following estimators.
+
+\begin{enumerate}
+\item $\hat{\theta}_1 = \frac{X_1 + X_2 + ... + X_n}{n}$
+\item $\hat{\theta}_2 = \frac{X_1 + X_2}{2}$
+\item $\hat{\theta}_3 = \frac{X_1 + X_2 + ... + X_n}{n+1}$
+\end{enumerate}
+a. Compute the bias of each estimator, $E[\hat{\theta}_i]- E[X]$.
+b. Compute the sampling variance of each estimator.
+c. Compute the MSE of each estimator.
+
+## *Solution $\hat{\theta}_1$*
+
+### *Bias $\hat{\theta}_1$*
+
+\begin{align*}
+    E[\hat{\theta}_1] &= E\left[\frac{X_1 + X_2 + ... + X_n}{n}\right]\\
+    &= \frac{1}{n}E[X_1 + X_2 + ... + X_n]\\
+    &= \frac{1}{n}\left(E[X_1] + E[X_2] + ... + E[X_n]\right)\\
+    &= \frac{1}{n}\left(E[X] + E[X] + ... + E[X]\right)\\
+    &= \frac{1}{n}nE[X]\\
+    &= E[X]\\
+    &= \frac {1} {\lambda}
+\end{align*}
+
+Therefore, the bias for $\hat{\theta}_1$ will be:
+\begin{align*}
+    E[\hat{\theta}_1] - E[X] &= E[X] - E[X]\\
+    &= \frac {1} {\lambda} - \frac {1} {\lambda}\\
+    &= 0
+\end{align*}
+
+### *Sampling Variance $\hat{\theta}_1$*
+
+\begin{align*}
+    V[\hat{\theta}_1] &= V\left[\frac{X_1 + X_2 + ... + X_n}{n}\right]\\
+    &= \frac{1}{n^2}V[X_1 + X_2 + ... + X_n]\\
+    &= \frac{1}{n^2}\left(V[X_1] + V[X_2] + ... + V[X_n]\right)& \text {Since } X_i's \text { are independent}\\ 
+    &= \frac{1}{n^2}\left(V[X] + V[X] + ... + V[X]\right)\\
+    &= \frac{1}{n^2}nV[X]\\
+    &= \frac{V[X]}{n}\\
+    &= \frac {\left(\frac{1} {\lambda^2}\right)}{n}\\
+    &= \frac {1} {n\lambda^2}
+\end{align*}
+
+### *MSE $\hat{\theta}_1$*
+
+\begin{align*}
+    MSE[\hat{\theta}_1] &= V[\hat{\theta}_1] + \left(E[\hat{\theta}_1] - E[X]\right)^2\\
+    &= \frac {1} {\lambda^2n} + \left(0\right)^2 \\
+    &= \frac {1} {\lambda^2n}
+\end{align*}
+
+## *Solution $\hat{\theta}_2$*
+
+### *Bias $\hat{\theta}_2$*
+
+\begin{align*}
+    E[\hat{\theta}_2] &= E\left[\frac{X_1 + X_2}{2}\right]\\
+    &= \frac{1}{2}E[X_1 + X_2]\\
+    &= \frac{1}{2}\left(E[X_1] + E[X_2]]\right)\\
+    &= \frac{1}{2}\left(E[X] + E[X]\right)\\
+    &= \frac{1}{2}2E[X]\\
+    &= E[X]\\
+    &= \frac {1} {\lambda}
+\end{align*}
+
+Therefore, the bias for $\hat{\theta}_2$ will be:
+\begin{align*}
+    E[\hat{\theta}_2] - E[X] &= E[X] - E[X]\\
+    &= \frac {1} {\lambda} - \frac {1} {\lambda}\\
+    &= 0
+\end{align*}
+
+### *Sampling Variance $\hat{\theta}_2$*
+
+\begin{align*}
+    V[\hat{\theta}_2] &= V\left[\frac{X_1 + X_2}{2}\right]\\
+    &= \frac{1}{2^2}V[X_1 + X_2]\\
+    &= \frac{1}{4}\left(V[X_1] + V[X_2]\right) & \text {Since } X_1 \perp\!\!\!\!\perp X_2\\ 
+    &= \frac{1}{4}\left(V[X] + V[X]\right)\\
+    &= \frac{1}{4}2V[X]\\
+    &= \frac{V[X]}{2}\\
+    &= \frac {\left(\frac{1} {\lambda^2}\right)}{2}\\
+    &= \frac {1} {2\lambda^2}
+\end{align*}
+
+### *MSE $\hat{\theta}_2$*
+
+\begin{align*}
+    MSE[\hat{\theta}_1] &= V[\hat{\theta}_2] + \left(E[\hat{\theta}_2] - E[X]\right)^2\\
+    &= \frac {1} {2\lambda^2} + \left(0\right)^2 \\
+    &= \frac {1} {2\lambda^2}
+\end{align*}
+
+## *Solution $\hat{\theta}_3$*
+
+### *Bias $\hat{\theta}_3$*
+
+\begin{align*}
+    E[\hat{\theta}_3] &= E\left[\frac{X_1 + X_2 + ... + X_n}{n+1}\right]\\
+    &= \frac{1}{n+1}E[X_1 + X_2 + ... + X_n]\\
+    &= \frac{1}{n+1}\left(E[X_1] + E[X_2] + ... + E[X_n]\right)\\
+    &= \frac{1}{n+1}\left(E[X] + E[X] + ... + E[X]\right)\\
+    &= \frac{1}{n+1}nE[X]\\
+    &= \frac{n}{n+1}E[X]\\
+    &= \frac {n} {(n+1)\lambda}
+\end{align*}
+
+Therefore, the bias for $\hat{\theta}_3$ will be:
+\begin{align*}
+    E[\hat{\theta}_3] - E[X] &= \frac{n}{n+1}E[X] - E[X]\\
+    &= \frac {n} {(n+1)\lambda} - \frac {1} {\lambda}\\
+    &= \frac {1}{\lambda} \left(\frac {n} {(n+1)} - 1 \right)\\
+    &= \frac {1}{\lambda} \left(\frac {n} {(n+1)} - \frac {n+1} {(n+1)} \right)\\
+    &= \frac {1}{\lambda} \left(- \frac {1} {(n+1)} \right)\\
+    &= - \frac {1} {(n+1) \lambda}
+\end{align*}
+
+### *Sampling Variance $\hat{\theta}_3$*
+
+\begin{align*}
+    V[\hat{\theta}_3] &= V\left[\frac{X_1 + X_2 + ... + X_n}{n+1}\right]\\
+    &= \frac{1}{(n+1)^2}V[X_1 + X_2 + ... + X_n]\\
+    &= \frac{1}{(n+1)^2}\left(V[X_1] + V[X_2] + ... + V[X_n]\right)& \text {Since } X_i's \text { are independent}\\ 
+    &= \frac{1}{(n+1)^2}\left(V[X] + V[X] + ... + V[X]\right)\\
+    &= \frac{1}{(n+1)^2}nV[X]\\
+    &= \frac{nV[X]}{(n+1)^2}\\
+    &= \frac {n\left(\frac{1} {\lambda^2}\right)}{(n+1)^2}\\
+    &= \frac {n}{(n+1)^2 \lambda^2}\\
+\end{align*}
+
+### *MSE $\hat{\theta}_3$*
+
+\begin{align*}
+    MSE[\hat{\theta}_3] &= V[\hat{\theta}_3] + \left(E[\hat{\theta}_3] - E[X]\right)^2\\
+    &= \frac {n}{(n+1)^2 \lambda^2} + \left(- \frac {1} {(n+1) \lambda}\right)^2 \\
+    &= \frac {n}{(n+1)^2 \lambda^2} + \frac {1}{(n+1)^2 \lambda^2} \\
+    &= \frac {n+1}{(n+1)^2 \lambda^2}\\
+    &= \frac {1}{(n+1) \lambda^2}\\
+\end{align*}
+
+## d. Explain in your own words, why estimator 3 has the highest bias, but the lowest MSE
+
+Even if $\hat{\theta}_3$ is biased because of the $+1$ in the denominator, this same denominator makes the sampling variance smaller, meaning that $V[\hat{\theta}_3]= \frac {n}{(n+1)^2 \lambda^2}$ < $\frac {1} {n\lambda^2} = V[\hat{\theta}_1]$ as long as $n>0$ (which is the case here).
+
+Even if the terms don't look alike we can prove it as follows:
+
+\begin{align*}
+    V[\hat{\theta}_3] &= \frac {n}{(n+1)^2 \lambda^2} \\
+    &= \frac {n}{n+1} \left(\frac {1}{(n+1)\lambda^2}\right)\\
+    &< \frac {1}{(n+1)\lambda^2} & \quad \text{Since } \frac {n}{n+1} < 1\\
+    &< \frac {1}{n\lambda^2}= V[\hat{\theta}_1] & \quad \text{Since } \frac {1}{n+1} < \frac {1}{n}\\
+\end{align*}
+
+
+
+And as long as $n > 1$, it will also be smaller than $V[\hat{\theta}_2]$ (which, by the way, is fixed). 
+
+On the other hand, the bias of the estimator $E[\hat{\theta}_3] - E[X]$ even if it’s not zero as the other two, it tends to zero as $n$ grows larger: $\lim\limits_{n \to \infty} - \frac {1} {(n+1) \lambda} = 0$. 
+
+By summing these two factors we end up with a lower $MSE[\hat{\theta}_3] = V[\hat{\theta}_3] + \left(E[\hat{\theta}_3] - E[X]\right)^2$, (since the variance is lower and the bias tends to the same value) meaning a more efficient estimator (it converges faster as $n$ grows larger).

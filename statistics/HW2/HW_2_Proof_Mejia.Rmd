@@ -1,0 +1,177 @@
+---
+title: "Proof Practice"
+author: "Emanuel Mejía"
+output: pdf_document
+---
+
+# 2.Broken Rulers
+You have a ruler of length $2$ and you choose a place to break it using a uniform probability distribution. Let
+r.v. $X$ represent the length of the left piece of the ruler. $X$ is distributed uniformly in $[0, 2]$.
+You take the left piece of the ruler and once again choose a place to break it using a uniform probability
+distribution. Let r.v. Y be the length of the left piece from the second break.
+
+  a. Draw a picture of the region in the $X-Y$ plane for which the joint density of $X$ and $Y$ is
+non-zero.
+  b. Compute the joint density function for $X$ and $Y$. (As always, make sure you write a complete
+expression.)
+  c. Compute the marginal probability density for $Y$, $f_Y(y)$.
+  d. Compute the conditional probability density of $X$, conditional on $Y = y$, $f_{X|Y} (x|y)$. (Make
+sure you state the values of $y$ for which this exists.)
+
+## 2.a
+
+```{r, echo=FALSE}
+library(ggplot2)
+
+eq = function(x){x}
+ggplot(data.frame(x = c(0, 2)), aes(x = x, y = x)) + geom_line(size = 1, color = "cornflowerblue") +
+  labs(x = "X",y = "Y") + theme_minimal() +
+  geom_vline(
+    aes(xintercept = 2),
+    color = "cornflowerblue",
+    linetype = "dashed",
+    size = 1
+  ) + 
+  geom_vline(
+    aes(xintercept = 0),
+    color = "black",
+    size = 1.5
+  ) +
+  geom_hline(
+    aes(yintercept = 0),
+    color = "black",
+    size = 1.5
+  )
+  
+  
+
+```
+
+## 2.b
+
+From the text we know that $X \sim U(0,2)$ and $Y|X=x \sim U(0,x)$. Therefore:
+
+$$f_X(x) = \left\{
+        \begin{array}{ll}
+            \frac{1}{2} & \quad 0 \leq x \leq 2 \\
+            0 & \quad otherwise
+        \end{array}
+    \right.$$
+
+And: 
+
+$$f_{Y|X}(y|x) = \left\{
+        \begin{array}{ll}
+            \frac{1}{x} & \quad 0 \leq y \leq x \\
+            0 & \quad otherwise
+        \end{array}
+    \right.$$
+
+And we also know that $f(x,y) = f_{Y|X}(y|x) f_X(x)$, then:
+\begin{align*}
+    f(x,y) &= f_{Y|X}(y|x) f_X(x) \\
+    &= \left(\frac{1}{2}\right)\left(\frac{1}{x}\right) \\
+    &= \frac{1}{2x} &&\quad 0 \leq y \leq x \leq 2 \\
+\end{align*}
+
+## 2.c
+
+We know that the marginal PDF of $Y$ is $f_Y(y) = \int _{-\infty }^{\infty }f\left(x,y\right)dx,\:\forall y\in \mathbb{R}\:$, then:
+
+\begin{align*}
+    f_Y(y) &= \int _{-\infty }^{\infty }f\left(x,y\right)dx \\
+    &= \int _{y}^{2}\frac{1}{2x}dx \\
+    &= \frac{1}{2}\left[ \ln x \right]_{y}^{2} \\
+    &= \frac{1}{2}\left[ \ln 2 - \ln y\right]  &&\quad 0 \leq y \leq 2 \\
+\end{align*}
+
+## 2.d
+
+Finally, to compute $f_{X|Y} (x|y)$ we have:
+
+\begin{align*}
+    f_{X|Y} (x|y) &= \frac{f(x,y)}{f_Y(y)} \\
+    &= \frac{\frac{1}{2x}}{\frac{1}{2}\left[ \ln 2 - \ln y\right]} \\
+    &= \frac{1}{x\left[ \ln 2 - \ln y\right]}  &&\quad y \leq x \leq 2 \\
+\end{align*}
+
+# 3. Post-Processing and Independence
+What if you have two random variables, $X$ and $Y$ that are independent. What happens if you apply a
+function, $f$, onto $X$? Is this newly transformed random variable, $f(X)$ still independent of $Y$ ?
+This question is posed in a way that works for any random variable, with any possible function
+from $\mathbb{R}$ to $\mathbb{R}$. A student with a strong math background might choose to prove this for the general
+case; as a hint to these students, our proof involves inverse images.
+For students who are building their math fundamentals, consider a proof by cases for a particular
+type of random variable, a Bernoulli random variable.
+That is, suppose $X$ and $Y$ are Bernoulli random variables that each take on values $\left\{0,1\right\}$.
+Furthermore, suppose that $f$ is a function that maps the input $0$ either onto $0$ or $1$, and it maps
+the input $1$ onto either $0$ or $1$. That is, $f : \left\{0,1\right\} \rightarrow  \left\{0,1\right\}$ is a function that can be applied to $X$.
+
+  a. Either for the general, or for the Bernoulli special case, prove that if $X$ and $Y$ are independent
+then $f(X)$ and $Y$ are independent.
+  b. Proving this for the general case requires more advanced math. What is the payoff for
+this additional work? If you prove something for the general case, does it apply to all special cases? If
+you prove something for a special case, does it apply to all general cases?
+
+## 3.a
+
+Let $X$ and $Y$ be two independent random variables and two functions $h, g: \mathbb{R} \rightarrow \mathbb{R}$. 
+We'll now define $U$ and $V$ as two random variables such that $U = h(X)$ and $V = g(X)$ with joint PDF $f_{U,V}(u,v)$ and marginals $f_U(u)$ and $f_V(v)$ respectively.
+
+\vspace{12pt}  
+Now, $\forall A_X,A_Y \subseteq  \mathbb{R}$ we can define:
+$B_X = \left\{x: h(x) \in A_X\right\} \subseteq  \mathbb{R}$
+and 
+$B_Y = \left\{y: g(y) \in A_Y\right\} \subseteq  \mathbb{R}$
+also known as the inverse images for our functions $h$ and $g$
+
+\vspace{12pt}    
+Then we'll have:
+
+\begin{align*}
+    \int_{A_Y} \int_{A_X} f_{U,V}(u,v) du dv &= \mathbb{P}\left[ U \in A_X , V \in A_Y \right]\\
+    &= \mathbb{P}\left[ h(X) \in A_X , g(Y) \in A_Y \right]\\
+    &= \mathbb{P}\left[ X \in B_X , Y \in B_Y \right]\\
+    &= \mathbb{P}\left[ X \in B_X\right] \mathbb{P}\left[Y \in B_Y \right]\\
+    &= \mathbb{P}\left[ h(X) \in A_X\right] \mathbb{P}\left[g(Y) \in A_Y \right]\\
+    &= \int_{A_X} f_U(u) du \int_{A_Y} f_V(v) dv && \hfill\square\\
+\end{align*}
+
+## 3.b
+
+The payoff for proving the general case is that we won't need to prove this again for each case we run into, since it will indeed apply to every special (specific) case, as long as the given conditions are satisfied (for instance, having valid random variables and valid functions from $\mathbb{R}$ to $\mathbb{R}$). Although, this doesn't work the other way around, since proving a specific case doesn't necessarily mean that it will apply to any other case.
+
+# 0.  Characterizing a Function of a Random Variable (Optional)
+
+Let $X$ be a continuous random variable with probability density function $f(x)$, and let $h$ be an invertible
+function where $h^{-1}$ is differentiable. Recall that $Y = h(X)$ is itself a continuous random variable.
+
+Prove that the probability density function of $Y$ is:
+
+$$ g(y) = f(h^{-1}(y)) \cdot \left|\frac{d}{dy}h^{-1}\left(y\right)\right|$$
+By definition we have the following:
+\begin{align*}
+    F_Y (y) &= \mathbb{P}(Y\leq y) \\
+    &= \mathbb{P}(h(X)\leq y)\\
+    &= \mathbb{P}(X\leq h^{-1}(y))\\
+    &= F_X(h^{-1}(y))\\
+\end{align*}
+
+And we also know that $g(x)$, the probability density function for Y is:
+
+\begin{align*}
+    g(x) = f_Y (y) &= \frac{d}{dy}F_y(y) \\
+    &= \frac{d}{dy}F_X(h^{-1}(y)) &&\text {By using our previous result}\\
+\end{align*}
+
+Which we could solve by using the chain rule: $\frac{d}{dz} \left[u(v(z))\right] = u'(v(z)) \cdot v'(z)$
+
+By defining: $u(z) = F_X(z)$ and $v(z) = h^{-1}(z)$. Then following our previous thread:
+
+\begin{align*}
+    g(x) = f_Y (y) &= \frac{d}{dy}F_X(h^{-1}(y)) \\
+    &=  F'_X(h^{-1}(y))\cdot h^{-1'}(y)\\
+    &=  f_X(h^{-1}(y))\cdot \frac{d}{dy}h^{-1}(y)\\
+    &\text {And since}\quad f_X(x) = f(x) \geq 0 \text {  and}\quad f_Y(y) = g(y) \geq 0 \text {:}\\
+    &=  f(h^{-1}(y)) \cdot \left|\frac{d}{dy}h^{-1}\left(y\right)\right| && \hfill\square\\
+\end{align*}

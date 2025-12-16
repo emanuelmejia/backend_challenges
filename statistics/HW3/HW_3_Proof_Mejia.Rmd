@@ -1,0 +1,41 @@
+---
+title: "Proof Practice"
+author: "Emanuel Mejía"
+date: "Week 3"
+output: pdf_document
+---
+
+
+# 1.Maximizing Correlation
+Correlation is a measure of linear dependence. Then, what are the possible values for correlation when one
+random variable is a linear function of another? To fix terms, suppose that $X$ and $Y$ are random variables,
+and $a$ is a constant where $a \ne 0$ and $b$ is any constant in $\mathbb{R}$. Furthermore, suppose that $Y$ is a function of $X$ that takes the following form:
+$$Y = aX + b$$
+What are the possible values for $\rho(X, Y)$, the correlation between $X$ and $Y$?
+
+\begin{align*}
+    \rho (x,y)
+    &= \frac{Cov\left[X,Y\right]}{\sigma \left[X\right]\sigma \left[Y\right]} 
+    =\frac{Cov\left[X,Y\right]}{\sqrt{V\left[X\right]} \sqrt{V\left[Y\right]}}\\
+    &= \frac{Cov\left[X,aX+b\right]}{\sqrt{V\left[X\right]} \sqrt{V\left[aX+b\right]}}\\
+    &= \frac{Cov\left[X,aX+b\right]}{\sqrt{V\left[X\right]} \sqrt{a^2V\left[X\right]}} \\
+    &= \frac{Cov\left[X,aX+b\right]}{\left|a\right|\left(\sqrt{V\left[X\right]}\right)^2}\\
+    &= \frac{Cov\left[X,aX+b\right]}{\left|a\right|V\left[X\right]}\\
+    &= \frac{E\left[\left(X-E\left[X\right]\right)\left(aX+b-E\left[aX+b\right]\right)\right]}
+    {\left|a\right|V\left[X\right]}\\
+    &= \frac{E\left[\left(X-E\left[X\right]\right)\left(aX+b-aE\left[X\right]-b\right)\right]}
+    {\left|a\right|V\left[X\right]}\\
+    &= \frac{E\left[\left(X-E\left[X\right]\right)\left(a\left(X-E\left[X\right]\right)\right)\right]}
+    {\left|a\right|V\left[X\right]}\\
+    &= \frac{E\left[a\left(X-E\left[X\right]\right)^2\right]}
+    {\left|a\right|V\left[X\right]}\\
+    &= \frac{aV\left[X\right]}{\left|a\right|V\left[X\right]}
+    = \frac{a}{\left|a\right|} \\
+    &\text {And since we already know that}\quad a \ne 0 \text {:}\\
+    &= \left\{
+        \begin{array}{ll}
+            1 & \quad a>0 \\
+            -1 & \quad a<0
+        \end{array}
+    \right.\\
+\end{align*}

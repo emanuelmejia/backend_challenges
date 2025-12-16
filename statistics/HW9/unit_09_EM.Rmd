@@ -1,0 +1,469 @@
+---
+title: "Unit 09 Homework"
+author: 'w203: Statistics for Data Science'
+date: \today
+output: 
+  pdf_document: 
+    number_sections: true
+---
+
+```{r load packages, message = FALSE, warning = FALSE}
+library(tidyverse)
+
+library(patchwork)
+library(stargazer)
+
+library(sandwich)
+library(lmtest)
+
+library(knitr)
+library(kableExtra)
+```
+
+Here is our intention for the homework:
+
+1. By simulating the data in **Question 1** you should be able to observe everything thing is happening in a series of models. 
+2. Then, by reading, replicating, and writing about the results of a very well done analysis in **Question 2, Part (C)** you have the ability to estimate regressions with a known goal. 
+3. If you have time, you might be interested in working on **Question 2, Part (B)** but we have made this optional. 
+
+In this homework, there are known values that you are trying to reproduce. As we move forward into future weeks, we will no longer have a known value that we are trying to replicate. Instead, we are going to have to make choices that can be justified, but without having an "answer sheet" that we can compare to. 
+
+To complete this homework, please write code that replaces the `'fill this in'` tags. Please store your results in the objects that we have created for you, this will help as graders to evaluate what you've written. 
+
+\tableofcontents
+\newpage
+
+
+# Simulated Data 
+
+For this question, we are going to create data, and then estimate models on this simulated data. This allows us to effectively *know* the population parameters that we are trying to estimate. Consequently, we can reason about how well our models are doing. 
+
+```{r create homoskedastic data function}
+create_homoskedastic_data <- function(n = 100) { 
+  
+  d <- data.frame(id = 1:n) %>% 
+    mutate(
+      x1 = runif(n=n, min=0, max=10), 
+      x2 = rnorm(n=n, mean=10, sd=2), 
+      x3 = rnorm(n=n, mean=0, sd=2), 
+      y  = .5 + 1*x1 + 0*x2 + .25*x3^2 + rnorm(n=n, mean=0, sd=1)
+    )
+  
+  return(d)
+}
+```
+
+```{r create first data}
+d <- create_homoskedastic_data(n=100)
+```
+
+## Plot of outcome data
+Produce a plot of the distribution of the **outcome data**. This could be a histogram, a boxplot, a density plot, or whatever you think best communicates the distribution of the data. What do you note about this distribution? 
+
+```{r distribution of outcome data}
+
+min_out = round(min(d$y),2)
+max_out = round(max(d$y),2)
+
+outcome_histogram <- d %>% 
+  ggplot(aes(y)) + 
+  geom_histogram(aes(y = ..density..), 
+                 fill = "#0099F8") +
+  geom_density(color = "#00558A", fill = "#71C9FF", alpha = 0.6) + 
+  xlim(trunc(min_out)-1,trunc(max_out) + 1) +
+  geom_vline(xintercept = min_out, linetype = "dashed", color = "#001F82") +
+  annotate(geom='text', x= min_out + 1, y=0.2, label= "Min", 
+           parse=TRUE, color="#001F82", size = 4) +
+  annotate(geom='text', x= min_out + 1, y=0.19, label= min_out, 
+           parse=TRUE, color="#001F82", size = 4) +
+  annotate(geom='text', x= max_out - 1, y=0.19, label= max_out, 
+           parse=TRUE, color="#001F82", size = 4) +
+  annotate(geom='text', x= max_out - 1, y=0.2, label= "Max", 
+           parse=TRUE, color="#001F82", size = 4) +
+  geom_vline(xintercept = max_out, linetype = "dashed", color = "#001F82") +
+  labs(
+    title = "Outcome (y) Distribution",
+    x = "Outcome (y)",
+    y = "Density"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(color = "#0099F8",
+                              size = 17,
+                              face = "bold"),
+    axis.title = element_text(color = "#969696",
+                              size = 10,
+                              face = "bold"),
+    axis.text = element_text(color = "#969696", size = 10),
+    axis.line = element_line(color = "#969696")
+  )
+                                 
+
+outcome_histogram
+```
+
+> "This distribution is randomly generated so it presents a different shape every time the code runs, sometimes it seems 'bell-shaped', other times it looks as a 'bimodal' distribution, sometimes with longer tails (especially on the right side). But there are some similitudes, for example the minimum value for Y is usually somewhere around zero, and the even when the maximum can have more variation when analyzing the density we can see that usually most of the values fall between 0 and 15." 
+
+## Evaluate large sample assumptions
+Are the assumptions of the large-sample model met so that you can use an OLS regression to produce consistent estimates? 
+
+> "Since we have n = 100 we could argue about having the required sample size but it is indeed in the very limit of what we can consider as 'large', about the assumptions, we have two of them basically, IID data, which is the case since every datapoint is randomly sampled independently from each other and from the exact same distributions. About having a unique BLP, we notice that there's no infinite variance (or heavy tails), and because of the way we're randomly generating our X's from different distributions, there's no X that could be written as a linear combination of the others. So I would say that the assumptions are satisfied indeed."
+
+## Estimate four models
+Estimate four models, called `model_1`, `model_2`,  `model_3` and `model_4` that have the following form:
+
+\begin{align} 
+  Y &= \beta_{0} + \beta_{1}x_{1} + 0 x_{2} + \beta_{3}x_{3} + \epsilon \\ 
+  Y &= \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{3} + \epsilon \\ 
+  Y &= \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{3}^{2} + \epsilon \\ 
+  Y &= \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{3} + \beta_{4}x_{3}^{2} + \epsilon
+\end{align}
+
+```{r estimate four models}
+# If you want to read about specifying statistical models, you can read 
+# here: https://cran.r-project.org/doc/manuals/R-intro.html#Formulae-for-statistical-models'
+# note, using the I() function is preferred over using poly() 
+
+model_1 <- lm(y~x1+x3, data = d)
+model_2 <- lm(y~x1+x2+x3, data = d)
+model_3 <- lm(y~x1+x2+I(x3^2), data = d)
+model_4 <- lm(y~x1+x2+x3+I(x3^2), data = d)
+```
+
+## Evaluate model performance
+Recall that *Foundations of Agnostic Statistics* used **MSE** as the evaluative criteria for population models. Use the plug-in analogue, the **Mean Squared Residual, MSR** in this sample to evaluate how well each of these models does at predicting outcomes.  
+
+```{r define a function to compute MSR} 
+calculate_msr <- function(model) { 
+  # This function takes a model, and uses the `resid` function 
+  # together with the definition of the msr to produce 
+  # the MEAN of the squared residuals
+  msr <- mean(resid(model)^2)
+  return(msr)
+} 
+```
+
+```{r use the MSR function}
+model_1_msr <- calculate_msr(model_1)
+model_2_msr <- calculate_msr(model_2)
+model_3_msr <- calculate_msr(model_3)
+model_4_msr <- calculate_msr(model_4)
+```
+
+```{r table MSRs, echo = FALSE}
+names <- c('Model 1', 'Model 2', 'Model 3', 'Model 4')
+
+MSRs <- c(model_1_msr,
+         model_2_msr,
+         model_3_msr,
+         model_4_msr) 
+
+df <- data.frame(Model = names,
+                 MSR = MSRs)
+
+df %>%
+  kable(format = "latex", booktabs = T) %>% 
+  kable_styling(latex_options = "HOLD_position", font_size = 8) %>% 
+  row_spec(0, bold = T, color = "white", background = "#0099F8",extra_latex_after = "\\arrayrulecolor{white}") %>% 
+  sub("\\\\toprule", "", .) 
+```
+
+## Consider the first model
+Consider, for a moment, only the first model. Is it possible to select coefficients in this model that would produce a lower mean squared residual? Why or why not? 
+
+> 'It's not possible to have a lower mean squared residual with different coefficients, because the way the coefficients are selected is specifically by minimizing the mean squared residuals.'
+
+## Best of the best
+Which of these models does the best job, in terms of mean squared residuals, at estimating the population coefficients? 
+
+> 'The model that has lowest mean squared residuals is the fourth model. Even when we know that the original outcome $y$ only uses $x_3^2$, just as model_3, we need to remember that everytime we add a new variable we can only get a lower or equal MSR (or what's equivalent, a greater or equal $R^2$), since model_4 has all the variables model_3 has plus an extra one, model_4 will always have at most the same MSR as model_3 or less.'
+
+## Conduct two tests about $x_2$. 
+### t-test
+First, using `model_2` that you have estimated: conduct a wald-test (i.e. a t-test) for the coefficient $\beta_{2}$. What do you conclude from this sample about the relationship between $x_2$ and $y$? 
+
+```{r}
+coeftest(model_2,
+         vcov= vcov(model_2)) # Since data is homoskedastic
+```
+
+> 'By looking at the summary of the model 2 we can see that the coeffiecient $\beta_2$ generates a t-value=`r round(coef(summary(model_2))[, "t value"][3],4)` with an associated p-value=`r round(coef(summary(model_2))[, "Pr(>|t|)"][3],4)`, so even when there's a value for that coefficient, there's not enough evidence to suggest that we can reject our $H_0 : \beta_2 = 0$.'
+
+### f-test 
+Is there any evidence that the additional parameter that you have estimated in `model_2` makes make this second model more fully represent the true population? Conduct an F-test with the null hypothesis that `model_1` is the correct population model, and evaluate whether you should reject the null to instead conclude that `model_2` is more appropriate. 
+
+```{r f-test for model_1 vs model_2} 
+anova(model_2, model_1, test = 'F')
+```
+
+
+> 'There's no evidence that we should reject our $H_0: model_1$, since our F-statistic= `r round(anova(model_2, model_1, test = 'F')[2,5],4)` and its p-value = `r round(anova(model_2, model_1, test = 'F')[2,6],4)`, so it makes no sense to use the larger model and we should use the simpler reduced model instead (model_1)'   
+
+### Reason about tests
+In your own words, explain why the p-values for the tests that you have conducted in parts (a) and (b) are the same. Are these tests merely different ways of asking the same question of a model?
+
+> 'In this specific case, it is indeed a different way to ask the same question, in the case of the t-test we're asking if the coefficient $\beta_2$ seems to be different than zero (adding some weight to $x_2$ in our model), and in the second test (the F-test) we're basically asking if it makes sense to include $x_2$ (multiplied by certain coefficient $\beta_2$) to our model. So, saying that there's no evidence to conclude that $B_2 \neq 0$ is equivalent to say that there's no evidence that adding $x_2$ will do any good to our model.
+It's not always like that, since an F-Test is not always about including just one single extra variable to our large model, there can be more of them.'
+  
+\newpage
+# Real-World Data 
+
+> "Can timely reminders *nudge* people toward increased savings?"
+
+Dean Karlan, Margaret McConnell, Sendhil Mullainathan, and Jonathan Zinnman published a paper in 2016 examining just this question. In this research, the authors recruited people living in Peru, Bolivia, and the Philippines to be a part of an experiment. Among those recruited, a randomly selected subset were sent SMS messages while others were not sent these messages. The authors compare savings rates between these two groups using OLS regressions. 
+
+Please, take the time to read the following sections of [the paper](./karlan_data/karlan_2016.pdf). We are asking you to read this to provide context and understanding for the data analysis task. Please, read briefly (take no more than 15-20 minutes for this reading).  
+
+1. The *Abstract*
+2. The first five paragraphs of the *Introduction* (the last paragraph to read begins with, "Although the full pattern of our empirical results suggests..." )
+3. Section 2: *Experimental Design* so you have a sense for where and how these experiments were conducted 
+4. Table 2(a), 2(b), and 2(c) so you have a sense for what the SMS messages said to participants. 
+
+The core results from this study are reported in Table 4. You can read this now, or when you are doing the data work to reproduce parts of Table 4 later in this homework. 
+
+## Read the data 
+
+Read in the data using the following code:
+
+- This code is using the `haven` package, and then the `read_dta` function within that package to load data that is stored in a proprietary STATA format. 
+- For a description of the meaning of these variables, you can see the documentation in this repository. 
+
+```{r, echo = TRUE, results='hide'} 
+d <- haven::read_dta(file = './karlan_data/analysis_dataallcountries.dta')
+glimpse(d)
+```
+
+## (Optional). Conduct an F-test
+
+**(This section about conducting an F-test is optional! The next section is required!)** 
+
+One of the requirements of a data science experiment is that treatment be randomly assigned to experimental units. One method of assessing whether treatment was randomly assigned is to try and predict the treatment assignment. Here's the intuition: *it should not be possible to predict something random.*
+
+The specifics of the testing method utilize an F-test. Here is how: 
+
+- The data scientist first estimates a model that regresses treatment using only a regression intercept, $rem\_any \sim \beta_{0} + \epsilon_{short}$. In `lm()`, you can estimate this by writing `lm(rem_any ~ 1)`. 
+- Then, the data scientist estimates a model that regresses treatment using all data available on hand, $rem\_any ~ \sim \beta_{0} + \beta_{1}x_{1} + \dots + \beta_{k}x_{k} + \epsilon_{long}$, where $x_{1} + \dots$ index all the additional variables to be tested.
+
+To test whether the long model has explained more of the variance in $rem\_any$ than the short model, the data scientist then conducts an F-test for the long- vs. short-models.
+
+```{r}
+# Taking out variables with NA's and creating a new df
+na_count <-sapply(d, function(y) sum(length(which(is.na(y)))))
+na_count <- data.frame(na_count)
+na_count$row <- seq.int(nrow(na_count)) 
+v <- na_count$row[na_count$na_count>0]
+d1 <- d[,c(-1,-v)]
+
+# Creating intercept-model and saturated model
+model_short <- lm(rem_any~1, data=d1)
+model_long <- lm(rem_any~., data=d1)
+
+#Comparing using F-test
+ftest<- anova(model_short, model_long, test = 'F')
+ftest
+```
+
+
+### (Optional) State the null
+What is the null hypothesis for this F-test between a short- and long-model? 
+
+> '$H_0$: The long model is explaining things as well as the short model, meaning that rem_any is generated at random' 
+
+### (Optional) Why would you reject?
+What criteria would lead you to reject this null hypothesis? 
+
+> 'Having an F-statistic that produces a P-value < 0.05, which is the case' 
+
+### (Optional) Conduct an f-test
+Using variables that indicate: 
+  
+  - sex (as noted in the codebook) (`female`); 
+  - age (`age`); 
+  - high school completion (`highschool_completed`); 
+  - wealth (`wealthy`); 
+  - marriage status (`married`); 
+  - weekly income (`inc_7d`);  
+  - discount preferences (`hyperbolic`); 
+  - and, spend before saving (`spent_b4isaved`); 
+  - meeting savings goals (`saved_asmuch`); 
+  - missingness of covariates indicator (`missing_female`, `missing_age`, ...)
+  
+  your team has conducted an F-test to evaluate whether there is evidence to call into question whether respondents in the *Philippines* were randomly assigned to receive any reminder (`rem_any`).   
+
+```{r conduct f-test}
+short_model <- lm(rem_any ~ 1, data = d[d$country == 3,])
+long_model  <- lm(rem_any ~ female + missing_female + age + missing_age + 
+                    highschool_completed + missing_highschool_completed +
+                    wealthy + missing_wealthy + married + missing_married + 
+                    inc_7d + missing_inc_7d + hyperbolic + missing_hyperbolic +
+                    spent_b4isaved + missing_spent_b4isaved + saved_asmuch + 
+                    missing_saved_asmuch, 
+                  data = d[d$country == 3,])
+
+# after filling in the `long_model` above, 
+# you should be able to conduct your test by uncommenting the line below
+anova(short_model, long_model, test = "F")
+```
+
+### (Optional) What do you conclude? 
+Do you reject or fail to reject the null hypothesis? 
+
+> 'Since we are trying to determine whether the reminder was randomly assigned for this specific coountry, even if the p-value is higher than 0.5 (not by far), we should take a closer look just to be sure especially since the previous example would reject the null for all the dataframe. When looking at the RSS there is not much difference in both models so in this case, I would fail to reject the null hypothesis (even if the p-value is low).' 
+
+### (Optional) Interpret your conclusions
+What do you conclude from this test? Do the additional covariates increase the model's ability to predict treatment? This is an example of using a "Golem" model for a specific task. 
+
+> 'When adding the additional covariates it seems like our ability to predict indeed increases, but not as much as we would need to say that the reminders are not randomly assigned for this specific country.' 
+
+## Reproduce Table 4
+
+There is **a lot** that is happening in Table 4 of this paper. In this part of the question, you will reproduce some parts of this table. First, reproduce the OLS regression estimates that are in the upper right of Table 4. That is, estimate effects of SMS message on meeting savings goals.
+
+![Tables of Models to Reproduce. Students should read the caption to this table carefully, because it describes the process used to estimate this model. This style of reporting should be emulated in subsequent homework and lab work!](./img/top_right.png)
+
+In Section 3.1 of the included paper, the authors describe the OLS model that they estimate: 
+
+$$
+  Y_{i} = \alpha + \beta R_{i} + \gamma Z_{i} + \epsilon_{i}
+$$
+
+For the upper right panel that you are estimating, the outcome, $Y_{i}$ is a binary indicator for whether the individual met their savings goal. The indicator $R_{i}$ is a binary indicator for whether the individual was assigned to receive a reminder. And, $Z_{i}$ is a vector of additional features: a categorical variable for the country, and a binary indicator for whether the individual was recruited by a marketer. In the model labeled (3) only $Y$, $R$ and $Z$ are used in the regression. In the model labeled (4) these variables are used, but so too are the other variables that you previously used in the F-test. 
+
+### Evaluate the large sample assumptions
+Examining the data, and any information provided by the authors in the paper, evaluate the assumptions for the large-sample linear model. Are the necessary assumptions met for this regression model to produce consistent estimates (i.e. estimates that converge in probability to the population values)? Why or why not? If you use data to evaluate these assumptions, please feel free to show your EDA and evaluation in this document. 
+
+> 'We have more than 13,500 observations, so we can indeed treat this as a large sample so we need to evaluate two assumptions. IID data, which could be argued since we don't really know if the samples are indeed random (looking at 2.2.1 they might not be), so this assumption, at least in the pooled sample may not be satisfied. Regarding a unique BLP, when looking at our outcome variable we don't have infinite variance nor heavy tails and actually this is a binary variable with just two possible values, so the second assumption is satisfied.' 
+
+### Conduct these regressions
+The authors have concluded that they can conduct these regressions. So, in the next code chunk, would you please conduct these regressions?  You will have to read the notes below Table 4 to get exactly the correct covariate set that reproduces the reported estimates. First, estimate the model that is reported in model (3); then, estimate the model that is reported in model (4). You should be able to exactly reproduce their results, including number of observations, coefficients, and standard errors.  
+
+
+```{r build out regressions}
+d$country <- as.factor(d$country)
+
+mod_pooled_no_covariates   <-
+  lm(
+    reached_b4goal ~ rem_any + country + marketer +
+      joint + joint_single + dc + highint + rewardint,
+    data = d
+  ) 
+
+mod_pooled_with_covariates <-
+  lm(
+    reached_b4goal ~ rem_any + country + marketer +
+      joint + joint_single + dc + highint + rewardint +
+      female + age +
+      highschool_completed +
+      wealthy + married +
+      inc_7d + hyperbolic +
+      spent_b4isaved + saved_asmuch,
+    data = d
+  ) 
+```
+
+### Do covariates improve model fit? 
+Does the addition of the covariates improve the fit of the model? First, compute the MSR for each model (you can use methods from the first question, either `augment` or `resid`). Then, conduct an F-test to evaluate. 
+
+```{r compute MSR for the short and long models; ensure you print these values to the screen}
+mean_squared_residual_no_covariates   <- calculate_msr(mod_pooled_no_covariates)
+mean_squared_residual_with_covariates <- calculate_msr(mod_pooled_with_covariates)
+```
+
+The mean squared residuals of the short model are, **`r mean_squared_residual_no_covariates`**. The mean squared residuals of the long model are **`r mean_squared_residual_with_covariates`**. In the next chunk, we test whether the MSRs of the models are different using an F-test. 
+
+```{r test whether covariates improve the model}
+f_test_of_long_vs_short <- anova(mod_pooled_no_covariates, 
+                                 mod_pooled_with_covariates, 
+                                 test = "F") 
+
+f_test_of_long_vs_short
+```
+
+> 'We are testing whether the long model (with covariates) explains things better than the short model (with no covariates), so we're running an F-test (besides measuring MSR for both models, since we already know that this will decrease just for adding variables). To be able to run this F-test our models should be "nested", meaning that the short model (all its independent variables) should be "included" in the large model, and the null hypothesis for this test is '$H_O$: The long model explains things as well as the short model (there's no improvement)'. In this specific case we can reject than null hypothesis and choose the large model, which could imply having a more robust model (although we still need to check which coefficients are statistically significant), but it also means that we need to measure more variables which could be more expensive or difficult from a business point of view.'
+
+### Robust standard errors
+The authors report that they used Huber-White standard errors. That is to say, they used robust standard errors. Use the function `vcovHC` -- the variance-covariance matrix that is heteroskedastic consistent -- from the `sandwich` package, together with the `coeftest` function from the `lmtest` package to print a table for each of these regressions. 
+
+```{r print regression tables with robust standard errors} 
+# you can uncomment the following lines to conduct and report a test with robust standard errors
+# notice that you are not storing the results of this test, and instead simply printing to the screen
+# 
+coeftest(mod_pooled_no_covariates, vcovHC)
+coeftest(mod_pooled_with_covariates, vcov = vcovHC(mod_pooled_with_covariates, type="HC1"))
+```
+
+### State your null hypotheses
+For each of the coefficients in the table you have just printed, there is a p-value reported: This is a p-value for a hypothesis test that has a null hypothesis. What is the null hypothesis for each of these tests? 
+
+> 'The null Hypothesis for each one of the coefficients is that the coefficient is equal to zero (it wouldn't be statistically significant). $H_0: \beta_k = 0$ for every coefficient in our model' 
+
+### Which tests reject the null hypothesis
+Suppose that your criteria for rejecting the null hypothesis were: "The p-value must be smaller than 0.05". Then, which of these coefficients rejects that null hypothesis? (Keep only one of the options in the "Determination" column of the table below.)
+
+> | Variable               | Determination                  | 
+> |------------------------|--------------------------------|
+> | `rem_any`              | Significant |
+> | `joint`                | Not Significant |
+> | `joint_single`         | Not Significant |
+> | `dc`                   | Not Significant |
+> | `highint`              | Not Significant |
+> | `rewardint`            | Not Significant |
+> | Lives in Bolivia       | Significant |
+> | Lives in Peru          | Significant |
+> | `female`               | Significant | 
+> | `age`                  | Significant | 
+> | `highschool_completed` | Not Significant | 
+> | `wealthy`              | Significant |  
+> | `married`              | Significant | 
+> | `inc_7d`               | Not Significant |  
+> | `saved_asmuch`         | Not Significant | 
+> | `spent_b4isaved`       | Not Significant | 
+
+### Interpret the effect of being sent a reminder
+Interpret the meaning of the coefficient estimated when individuals are sent any reminder, which is encoded on the `rem_any` variable. We will talk about this more in a later unit, but this is the treatment effect from this experiment. As you are interpreting this coefficient, keep in mind the nature of the `rem_any` variable -- how many levels are there in this variable? How is this variable encoded? What does a one-unit change on this variable mean? As well, keep in mind that the outcome variable measures whether the individual met their commitment. How is this variable encoded and what does a coefficient mean in this context?
+
+
+> 'This variable is binary with 1 = receiving a reminder. What this coefficient tells us is that we would expect an increase of $\beta_{rem-any} =$ `r round(coef(summary(mod_pooled_with_covariates))[, "Estimate"]["rem_any"] * 100,3)`% in the clients' "chances" to meet their goal if a reminder is received (everything else equal).'
+
+### Interpret the coefficient on `age` 
+Interpret the meaning of the coefficient estimated on `age`. 
+
+> 'When talking about age, using this model, we would expect a positive relationship between age and meeting the saving goals, specifically an increase of $\beta_{age} =$ `r round(coef(summary(mod_pooled_with_covariates))[, "Estimate"]["age"] * 100,3)`% in their chances to meet their goal for each additional year in the clients' age.' 
+
+### Interpret the coefficient on `highschool_completed` 
+Interpret the meaning of the coefficient estimated on `highschool_completed`. 
+
+> 'This coefficient would imply that we could expect an increased $\beta_{highschool} =$ `r round(coef(summary(mod_pooled_with_covariates))[, "Estimate"]["highschool_completed"] * 100,3)`% chance from those who finished high school, although this coefficient has a very high p-value (`r round(coef(summary(mod_pooled_with_covariates))[, "Pr(>|t|)"]["highschool_completed"],3)`) which makes it not significant (statistically) and obtaining it could be just a matter of our sample (luck) rather than having a true relationship.'
+
+### Print a whole table.
+Finally, produce a legible regression table using the `stargazer` package that summarizes the work that you have just done. This regression table should 
+
+  - Contain the model without covariates as well as the model with covariates.
+  - Contain the coefficients that you have estimated for the model. 
+  - Contain the standard errors you have estimated for the model. 
+  - Contain labels that are written in English (i.e. not variable names) that describe each concept tested on each row
+
+Once you have estimated these models, you can print them to the screen using the `stargazer` package. 
+
+
+
+```{r print model estimates, warning = FALSE, results = 'asis'}
+## while you are writing you code, you can use `type = 'text'` to print to the console
+## when you compile your PDF to submit, if you like you can format this as a latex table. to do so: 
+##  1. change the `type = 'text'` to be `type = 'latex'` in the stargazer function call; and, 
+##  2. pass an argument into the chunk declaration (i.e. after `warning = FALSE` above), that is `results = 'asis'`
+
+stargazer(
+ mod_pooled_no_covariates,
+ mod_pooled_with_covariates,
+ no.space=TRUE,
+ title="Results",
+ dep.var.labels=c("Met Commitment"),
+ column.labels=c("No Covariates","With Covariates"),
+ order="Constant",
+ covariate.labels=c("(Intercept)", "Reminder","Lives in Bolivia", "Lives in Phillipines", "Marketer Contact", "Joint Account",
+                    "Single Account", "Deposit Collection", "High Int Rate", "Reward Int Rate", "Gender (F = 1, M = 0)",
+                    "Age", "High School","Wealthy","Married","Income (7 days)", "Hyperbolic Pref", "Spent B4 Save",
+                    "Saved as Wanted")
+ )
+```
